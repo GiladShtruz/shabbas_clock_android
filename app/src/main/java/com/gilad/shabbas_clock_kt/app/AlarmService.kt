@@ -1,3 +1,6 @@
+// ========================================
+// קובץ: AlarmService.kt - תיקון מלא ללא GlobalScope
+// ========================================
 package com.gilad.shabbas_clock_kt.app
 
 import android.app.*
@@ -12,23 +15,17 @@ import android.net.Uri
 import android.os.*
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.gilad.shabbas_clock_kt.R
 import kotlinx.coroutines.*
-
-
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.gilad.shabbas_clock_kt.R
 
 class AlarmService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private var job: Job? = null
-    private var vibrateJob: Job? = null
-    private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    private var stopAlarmJob: Job? = null
+
+    // יצירת scope משלנו לשירות
+    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     companion object {
         private const val CHANNEL_ID = "alarm_channel"
@@ -75,7 +72,7 @@ class AlarmService : Service() {
                 enableLights(true)
                 enableVibration(true)
                 setSound(null, null)
-                setBypassDnd(true) // עקוף נא לא להפריע
+                setBypassDnd(true)
             }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
@@ -114,11 +111,9 @@ class AlarmService : Service() {
     }
 
     private fun playAlarm(durationSeconds: Int, volume: Int, vibrate: Boolean, ringtoneFile: String) {
-        // עקוף מצב שקט
         val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // שמור מצב קודם
         val previousRingerMode = audioManager.ringerMode
         val previousVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
 
@@ -145,8 +140,8 @@ class AlarmService : Service() {
                 startContinuousVibration()
             }
 
-            // עצירה אוטומטית אחרי הזמן שנקבע
-            job = GlobalScope.launch {
+            // השתמש ב-serviceScope במקום GlobalScope
+            stopAlarmJob = serviceScope.launch {
                 delay(durationSeconds * 1000L)
                 stopAlarm()
 
@@ -159,16 +154,6 @@ class AlarmService : Service() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        if (vibrate) {
-            startContinuousVibration()
-        }
-
-        // תיקון: השתמש ב-serviceScope במקום GlobalScope
-        job = serviceScope.launch {
-            delay(durationSeconds * 1000L)
-            stopAlarm()
-        }
     }
 
     private fun playRingtone(ringtoneFile: String) {
@@ -180,11 +165,9 @@ class AlarmService : Service() {
                         ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 }
                 ringtoneFile.startsWith("content://") -> {
-                    // קובץ שנבחר על ידי המשתמש
                     Uri.parse(ringtoneFile)
                 }
                 else -> {
-                    // fallback לברירת מחדל
                     RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 }
             }
@@ -203,7 +186,6 @@ class AlarmService : Service() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            // נסה לנגן צליל ברירת מחדל במקרה של שגיאה
             try {
                 val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 mediaPlayer = MediaPlayer.create(this, defaultUri)
@@ -216,7 +198,6 @@ class AlarmService : Service() {
     }
 
     private fun startContinuousVibration() {
-        // תיקון: השתמש ב-VibratorManager בגרסאות חדשות
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
             vibratorManager.defaultVibrator
@@ -245,9 +226,8 @@ class AlarmService : Service() {
         vibrator?.cancel()
         vibrator = null
 
-        job?.cancel()
+        stopAlarmJob?.cancel()
 
-        // תיקון: השתמש ב-stopForeground עם ServiceCompat
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -257,10 +237,13 @@ class AlarmService : Service() {
 
         stopSelf()
     }
+
     override fun onDestroy() {
         stopAlarm()
-        serviceScope.cancel() // ביטול ה-scope
+        // ביטול ה-scope כשהשירות נהרס
+        serviceScope.cancel()
         super.onDestroy()
     }
+
     override fun onBind(intent: Intent?): IBinder? = null
 }

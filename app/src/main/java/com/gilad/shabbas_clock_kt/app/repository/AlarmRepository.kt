@@ -24,22 +24,23 @@ class AlarmRepository(private val context: Context) {
             val type = object : TypeToken<List<Alarm>>() {}.type
             val alarms: List<Alarm> = gson.fromJson(json, type)
 
-            // מסנן שעונים שעברו ומכבה אותם
+            // מסנן שעונים שעברו ומכבה אותם - רק אם הם פעילים
             val now = LocalDateTime.now()
             val updatedAlarms = alarms.map { alarm ->
+                // כבה רק אם השעון פעיל והזמן עבר
                 if (alarm.isActive && alarm.getLocalDateTime().isBefore(now)) {
                     alarm.copy(isActive = false)
                 } else {
-                    alarm
+                    alarm // החזר כמו שהוא - שמור על המצב
                 }
             }
 
-            // שומר שינויים אם היו
+            // שומר שינויים רק אם היו
             if (updatedAlarms != alarms) {
                 saveAlarms(updatedAlarms)
             }
 
-            // מיון לפי שעה יומית (שעה ודקה בלבד, לא תאריך)
+            // מיון לפי שעה יומית
             updatedAlarms.sortedBy { alarm ->
                 val time = alarm.getLocalDateTime()
                 time.hour * 60 + time.minute
@@ -49,7 +50,6 @@ class AlarmRepository(private val context: Context) {
             emptyList()
         }
     }
-
     fun saveAlarms(alarms: List<Alarm>) {
         val file = File(context.filesDir, fileName)
         val json = gson.toJson(alarms)

@@ -268,22 +268,16 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
 
     private fun updateAlarmsList() {
         val alarms = repository.getAllAlarms()
+        alarmAdapter.submitList(alarms)
 
-        // עשה רענון מלא של הרשימה
-        runOnUiThread {
-            alarmAdapter.submitList(null) // נקה קודם
-            alarmAdapter.submitList(alarms) // ואז הוסף מחדש
-
-            if (alarms.isEmpty()) {
-                emptyStateText.visibility = View.VISIBLE
-                recyclerView.visibility = View.GONE
-            } else {
-                emptyStateText.visibility = View.GONE
-                recyclerView.visibility = View.VISIBLE
-            }
+        if (alarms.isEmpty()) {
+            emptyStateText.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            emptyStateText.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
         }
     }
-
     private fun checkAndDisableActiveAlarms() {
         val now = LocalDateTime.now()
         val alarms = repository.getAllAlarms()
@@ -330,25 +324,76 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             toggleEditMode()
         }
     }
+
+
+
     private fun showAddEditDialog(alarm: Alarm?) {
         val bottomSheet = AddEditAlarmBottomSheet(alarm) { updatedAlarm ->
             if (alarm == null) {
+                // שעון חדש
                 val newAlarm = updatedAlarm.copy(id = repository.getNextAlarmId())
                 repository.addAlarm(newAlarm)
                 if (newAlarm.isActive) {
                     alarmManager.setAlarm(newAlarm)
                 }
             } else {
+                // עדכון שעון קיים - שמור על המצב הקודם אם לא השתנה
                 alarmManager.cancelAlarm(alarm)
-                repository.updateAlarm(updatedAlarm)
-                if (updatedAlarm.isActive) {
-                    alarmManager.setAlarm(updatedAlarm)
+
+                // וודא שה-isActive נשאר כמו שהיה אם לא שינו אותו
+                val finalAlarm = updatedAlarm.copy(
+                    isActive = alarm.isActive  // שמור על המצב המקורי
+                )
+
+                repository.updateAlarm(finalAlarm)
+                if (finalAlarm.isActive) {
+                    alarmManager.setAlarm(finalAlarm)
                 }
             }
-            updateAlarmsList()
+            // רענן את הרשימה בצורה נכונה
+            updateAlarmsListCorrectly()
         }
         bottomSheet.show(supportFragmentManager, "AddEditAlarmBottomSheet")
     }
+
+    private fun updateAlarmsListCorrectly() {
+        handler.postDelayed({
+            val alarms = repository.getAllAlarms()
+            runOnUiThread {
+                // בצע רענון מלא אך מבוקר
+                alarmAdapter.submitList(alarms) {
+                    // לא לקרוא ל-notifyDataSetChanged כאן
+                    // רק לעדכן את ה-visibility של empty state
+                    if (alarms.isEmpty()) {
+                        emptyStateText.visibility = View.VISIBLE
+                        recyclerView.visibility = View.GONE
+                    } else {
+                        emptyStateText.visibility = View.GONE
+                        recyclerView.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }, 100) // דיליי קטן כדי לוודא שה-Repository עודכן
+    }
+//    private fun showAddEditDialog(alarm: Alarm?) {
+//        val bottomSheet = AddEditAlarmBottomSheet(alarm) { updatedAlarm ->
+//            if (alarm == null) {
+//                val newAlarm = updatedAlarm.copy(id = repository.getNextAlarmId())
+//                repository.addAlarm(newAlarm)
+//                if (newAlarm.isActive) {
+//                    alarmManager.setAlarm(newAlarm)
+//                }
+//            } else {
+//                alarmManager.cancelAlarm(alarm)
+//                repository.updateAlarm(updatedAlarm)
+//                if (updatedAlarm.isActive) {
+//                    alarmManager.setAlarm(updatedAlarm)
+//                }
+//            }
+//            updateAlarmsList()
+//        }
+//        bottomSheet.show(supportFragmentManager, "AddEditAlarmBottomSheet")
+//    }
 //    private fun showAddEditDialog(alarm: Alarm?) {
 //        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 //        val lastRingtone = prefs.getString(PREF_LAST_RINGTONE, "default") ?: "default"
@@ -426,7 +471,6 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     }
 
     override fun onAlarmToggle(alarm: Alarm, isChecked: Boolean) {
-        // אם המצב לא השתנה, לא לעשות כלום
         if (alarm.isActive == isChecked) {
             return
         }
@@ -438,7 +482,6 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             .withSecond(0)
             .withNano(0)
 
-        // אם השעה כבר עברה היום, קבע למחר
         if (alarmTime.isBefore(now) || alarmTime.isEqual(now)) {
             alarmTime = alarmTime.plusDays(1)
         }
@@ -449,24 +492,20 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             isActive = isChecked
         )
 
-        // עדכן במאגר
         repository.updateAlarm(updatedAlarm)
-
-        // תמיד בטל את השעון הקודם
         alarmManager.cancelAlarm(alarm)
 
         if (isChecked) {
             alarmManager.setAlarm(updatedAlarm)
         }
 
-        // עדכון מיידי של הרשימה ללא דיליי
-        runOnUiThread {
-            val alarms = repository.getAllAlarms()
-            alarmAdapter.submitList(null) // ריקון זמני
-            alarmAdapter.submitList(alarms) // רענון מלא
+        // רענון מיידי עם notifyDataSetChanged במקום submitList
+        val alarms = repository.getAllAlarms()
+        alarmAdapter.submitList(alarms) {
+            // callback אחרי שהרשימה עודכנה
+            alarmAdapter.notifyDataSetChanged()
         }
-    }
-    override fun onResume() {
+    }    override fun onResume() {
         super.onResume()
 
         // הפעל רענון מיידי

@@ -205,14 +205,14 @@ class AddEditAlarmBottomSheet(
 
         if (isTimePassed) {
             targetDateTime = targetDateTime.plusDays(1)
-            selectedDateTime = targetDateTime
+            // אל תעדכן את selectedDateTime כאן! רק אם המשתמש בוחר
         }
 
         for (i in 0..3) {
             val chip = Chip(requireContext())
             chip.isCheckable = true
             chip.isClickable = true
-            chip.isEnabled = true // תמיד פעיל
+            // אל תשנה את isEnabled - תמיד true
 
             val chipDateTime = if (isTimePassed) {
                 now.plusDays((i + 1).toLong())
@@ -237,23 +237,26 @@ class AddEditAlarmBottomSheet(
             chip.text = chipText
             chip.tag = chipDateTime
 
+            // בדוק אם זה היום הנבחר
             val isSameDay = chipDateTime.toLocalDate() == selectedDateTime.toLocalDate()
             chip.isChecked = isSameDay
 
-            chip.setOnClickListener { clickedChip ->
-                if (clickedChip.isEnabled) {
-                    val selected = clickedChip.tag as LocalDateTime
-                    selectedDateTime = selected
-                    updateDayChips()
-                    updateTimeUntilText()
+            // Listener פשוט וישיר
+            chip.setOnClickListener {
+                val selected = it.tag as LocalDateTime
+                selectedDateTime = selected
+                // עדכן רק את הצ'יפים והטקסט
+                for (otherChip in dayChips) {
+                    val otherDate = otherChip.tag as LocalDateTime
+                    otherChip.isChecked = otherDate.toLocalDate() == selected.toLocalDate()
                 }
+                updateTimeUntilText()
             }
 
             dayChips.add(chip)
             dayChipGroup.addView(chip)
         }
     }
-
     private fun getDayName(date: LocalDateTime): String {
         return when(date.dayOfWeek.value) {
             1 -> "ב'"
@@ -288,13 +291,12 @@ class AddEditAlarmBottomSheet(
         if (minutes > 0) parts.add("$minutes דקות")
 
         val text = when {
-            parts.isEmpty() -> "מוגדר לפחות מדקה"
-            else -> "מוגדר ל-" + parts.joinToString(" ו-")
+            parts.isEmpty() -> "מוגדר לעוד פחות מדקה"
+            else -> "מוגדר לעוד " + parts.joinToString(" ו-")
         }
 
         timeUntilText.text = text
     }
-
     private fun updateDurationText() {
         val duration = durationOptions[durationSlider.value.toInt()]
         durationText.text = "משך צלצול: $duration שניות"
