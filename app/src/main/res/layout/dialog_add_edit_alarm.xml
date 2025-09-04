@@ -40,6 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             app:singleSelection="true"
+            app:selectionRequired="true"
             app:chipSpacingHorizontal="8dp"
             android:gravity="center"
             android:layout_marginBottom="16dp" />
@@ -49,37 +50,12 @@
             android:id="@+id/timeUntilText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="יצלצל בעוד..."
+            android:text="מוגדר ל..."
             android:textSize="16sp"
             android:textColor="@color/primary"
             android:gravity="center"
             android:minHeight="24dp"
             android:layout_marginBottom="24dp" />
-
-        <!-- צלצול -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="צלצול:"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
-
-        <TextView
-            android:id="@+id/ringtoneText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="צלצול ברירת מחדל"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/changeRingtoneButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="שנה צלצול"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_marginBottom="16dp" />
 
         <!-- משך צלצול -->
         <TextView
@@ -95,28 +71,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp" />
-
-        <!-- רטט -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="רטט:"
-                android:textSize="14sp"
-                android:layout_gravity="center_vertical" />
-
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/vibrateSwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-        </LinearLayout>
 
         <!-- עוצמת קול -->
         <TextView

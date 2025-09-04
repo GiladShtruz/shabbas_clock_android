@@ -1,15 +1,18 @@
 package com.gilad.shabbas_clock_kt.app
 
-import com.gilad.shabbas_clock_kt.R
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.*
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import com.gilad.shabbas_clock_kt.R
 import kotlinx.coroutines.*
 
 class AlarmService : Service() {
@@ -17,6 +20,7 @@ class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var job: Job? = null
+    private var vibrateJob: Job? = null
 
     companion object {
         private const val CHANNEL_ID = "alarm_channel"
@@ -35,7 +39,17 @@ class AlarmService : Service() {
         val vibrate = intent?.getBooleanExtra("vibrate", true) ?: true
         val ringtone = intent?.getStringExtra("ringtone") ?: "default"
 
-        startForeground(NOTIFICATION_ID, createNotification())
+        // שימוש ב-ServiceCompat לתמיכה בגרסאות שונות
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
 
         playAlarm(duration, volume, vibrate, ringtone)
 
@@ -53,6 +67,7 @@ class AlarmService : Service() {
                 enableLights(true)
                 enableVibration(true)
                 setSound(null, null)
+                setBypassDnd(true) // עקוף נא לא להפריע
             }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
@@ -81,7 +96,7 @@ class AlarmService : Service() {
             .setContentTitle("שעון מעורר")
             .setContentText("השעון מצלצל")
             .setSmallIcon(R.drawable.ic_alarm)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(mainPendingIntent, true)
             .addAction(R.drawable.ic_stop, "עצור", stopPendingIntent)
@@ -91,15 +106,71 @@ class AlarmService : Service() {
     }
 
     private fun playAlarm(durationSeconds: Int, volume: Int, vibrate: Boolean, ringtoneFile: String) {
-        // הגדרת עוצמת קול
+        // עקוף מצב שקט
         val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-        val targetVolume = (maxVolume * volume / 100)
-        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVolume, 0)
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // הפעלת צלצול
+        // שמור מצב קודם
+        val previousRingerMode = audioManager.ringerMode
+        val previousVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+
         try {
-            val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            // הגדר למצב רגיל כדי שהצלצול יעבוד
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (notificationManager.isNotificationPolicyAccessGranted) {
+                    audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                }
+            } else {
+                audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+            }
+
+            // הגדרת עוצמת קול
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            val targetVolume = (maxVolume * volume / 100)
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVolume, 0)
+
+            // הפעלת צלצול
+            playRingtone(ringtoneFile)
+
+            // הפעלת רטט רציף
+            if (vibrate) {
+                startContinuousVibration()
+            }
+
+            // עצירה אוטומטית אחרי הזמן שנקבע
+            job = GlobalScope.launch {
+                delay(durationSeconds * 1000L)
+                stopAlarm()
+
+                // החזר מצב קודם
+                withContext(Dispatchers.Main) {
+                    audioManager.ringerMode = previousRingerMode
+                    audioManager.setStreamVolume(AudioManager.STREAM_ALARM, previousVolume, 0)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun playRingtone(ringtoneFile: String) {
+        try {
+            val ringtoneUri = when {
+                ringtoneFile == "default" -> {
+                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                }
+                ringtoneFile.startsWith("content://") -> {
+                    // קובץ שנבחר על ידי המשתמש
+                    Uri.parse(ringtoneFile)
+                }
+                else -> {
+                    // fallback לברירת מחדל
+                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                }
+            }
+
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(this@AlarmService, ringtoneUri)
                 setAudioAttributes(
@@ -114,24 +185,31 @@ class AlarmService : Service() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-
-        // הפעלת רטט
-        if (vibrate) {
-            vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            val pattern = longArrayOf(0, 1000, 1000) // רטט למשך שנייה, הפסקה של שנייה
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(pattern, 0)
+            // נסה לנגן צליל ברירת מחדל במקרה של שגיאה
+            try {
+                val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                mediaPlayer = MediaPlayer.create(this, defaultUri)
+                mediaPlayer?.isLooping = true
+                mediaPlayer?.start()
+            } catch (ex: Exception) {
+                ex.printStackTrace()
             }
         }
+    }
 
-        // עצירה אוטומטית אחרי הזמן שנקבע
-        job = GlobalScope.launch {
-            delay(durationSeconds * 1000L)
-            stopAlarm()
+    private fun startContinuousVibration() {
+        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+        // תבנית רטט: רטט למשך 1000ms, הפסקה 500ms, חוזר
+        val pattern = longArrayOf(0, 1000, 500)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val amplitudes = intArrayOf(0, VibrationEffect.DEFAULT_AMPLITUDE, 0)
+            val effect = VibrationEffect.createWaveform(pattern, amplitudes, 0)
+            vibrator?.vibrate(effect)
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(pattern, 0)
         }
     }
 
@@ -144,6 +222,7 @@ class AlarmService : Service() {
         vibrator = null
 
         job?.cancel()
+        vibrateJob?.cancel()
 
         stopForeground(true)
         stopSelf()

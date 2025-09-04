@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- הרשאות בסיסיות -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -8,6 +10,14 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!-- הרשאות נוספות לעקיפת מצב שקט ונא לא להפריע -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+
 
 
     <application
@@ -30,9 +40,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <receiver
             android:name=".app.AlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".app.StopAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
 
@@ -48,7 +62,8 @@
         <service
             android:name=".app.AlarmService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 
 </manifest>

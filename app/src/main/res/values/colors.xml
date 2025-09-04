@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#4A90E2</color>
-    <color name="primary_dark">#357ABD</color>
-    <color name="accent">#7B68EE</color>
-    <color name="accent_dark">#6A5ACD</color>
+    <!-- צבעים ראשיים - סגול רך -->
+    <color name="primary">#7C4DFF</color>
+    <color name="primary_dark">#651FFF</color>
+    <color name="primary_light">#B388FF</color>
+
+    <!-- צבעי הדגשה -->
+    <color name="accent">#FF6E40</color>
+    <color name="accent_dark">#FF3D00</color>
+
+    <!-- צבעים בסיסיים -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="gray_light">#F5F5F5</color>
     <color name="gray_medium">#9E9E9E</color>
     <color name="gray_dark">#616161</color>
+
+    <!-- צבעים פונקציונליים -->
     <color name="red">#F44336</color>
     <color name="green">#4CAF50</color>
+    <color name="disabled_gray">#BDBDBD</color>
 </resources>

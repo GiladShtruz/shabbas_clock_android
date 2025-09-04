@@ -1,5 +1,9 @@
 package com.gilad.shabbas_clock_kt.app
 
+// ========================================
+// קובץ: app/src/main/java/com/shabbatalarm/app/BootReceiver.kt
+// ========================================
+
 
 import android.content.BroadcastReceiver
 import android.content.Context

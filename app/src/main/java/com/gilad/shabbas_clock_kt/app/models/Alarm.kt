@@ -1,12 +1,12 @@
 package com.gilad.shabbas_clock_kt.app.models
 
-import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 data class Alarm(
     val id: Int,
-    val dateTime: String, // format: "yyyy-MM-dd HH:mm"
+    val dateTime: String,
     var isActive: Boolean,
     val durationSeconds: Int,
     val volume: Int,
@@ -22,9 +22,36 @@ data class Alarm(
         return String.format("%02d:%02d", time.hour, time.minute)
     }
 
-    fun getDateString(): String {
-        val date = getLocalDateTime()
-        return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+    fun getDayName(): String {
+        if (!isActive) return ""
+
+        val now = LocalDateTime.now()
+        val alarmTime = getLocalDateTime()
+
+        if (alarmTime.isBefore(now)) {
+            return ""
+        }
+
+        // חשב שעות עד הצלצול
+        val hoursUntil = java.time.Duration.between(now, alarmTime).toHours()
+
+        // אם השעון יצלצל ב-24 שעות הקרובות, אל תציג יום
+        if (hoursUntil <= 24) {
+            return ""
+        }
+
+        // אחרת, החזר את שם היום המלא
+        val dayOfWeek = alarmTime.dayOfWeek.value
+        return when (dayOfWeek) {
+            1 -> "יום שני"
+            2 -> "יום שלישי"
+            3 -> "יום רביעי"
+            4 -> "יום חמישי"
+            5 -> "יום שישי"
+            6 -> "שבת"
+            7 -> "יום ראשון"
+            else -> ""
+        }
     }
 
     fun getTimeUntilAlarm(): String {
@@ -32,18 +59,23 @@ data class Alarm(
         val alarmTime = getLocalDateTime()
 
         if (alarmTime.isBefore(now)) {
-            return "עבר"
+            return ""
         }
 
-        val duration = Duration.between(now, alarmTime)
+        val duration = java.time.Duration.between(now, alarmTime)
         val days = duration.toDays()
         val hours = duration.toHours() % 24
         val minutes = duration.toMinutes() % 60
 
+        val parts = mutableListOf<String>()
+
+        if (days > 0) parts.add("$days ימים")
+        if (hours > 0) parts.add("$hours שעות")
+        if (minutes > 0) parts.add("$minutes דקות")
+
         return when {
-            days > 0 -> "בעוד $days ימים, $hours שעות ו-$minutes דקות"
-            hours > 0 -> "בעוד $hours שעות ו-$minutes דקות"
-            else -> "בעוד $minutes דקות"
+            parts.isEmpty() -> "יצלצל בעוד פחות מדקה"
+            else -> "יצלצל בעוד " + parts.joinToString(" ו-")
         }
     }
 }

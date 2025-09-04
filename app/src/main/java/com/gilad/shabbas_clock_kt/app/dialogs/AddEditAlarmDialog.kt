@@ -1,9 +1,15 @@
+// ========================================
+// קובץ: app/src/main/java/com/gilad/shabbas_clock_kt/app/dialogs/AddEditAlarmDialog.kt - מלא
+// ========================================
 package com.gilad.shabbas_clock_kt.app.dialogs
 
 import android.app.Dialog
 import android.app.TimePickerDialog
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.View
 import android.view.Window
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -11,27 +17,24 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.slider.Slider
-import com.google.android.material.switchmaterial.SwitchMaterial
 import com.gilad.shabbas_clock_kt.R
 import com.gilad.shabbas_clock_kt.app.models.Alarm
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
 
 class AddEditAlarmDialog(
     private val activity: AppCompatActivity,
     private val alarm: Alarm?,
+    private val lastRingtone: String,
+    private val lastRingtoneName: String,
     private val onSave: (Alarm) -> Unit
 ) : Dialog(activity) {
 
     private lateinit var timeButton: Button
     private lateinit var dayChipGroup: ChipGroup
     private lateinit var timeUntilText: TextView
-    private lateinit var ringtoneText: TextView
-    private lateinit var changeRingtoneButton: Button
     private lateinit var durationText: TextView
     private lateinit var durationSlider: Slider
-    private lateinit var vibrateSwitch: SwitchMaterial
     private lateinit var volumeText: TextView
     private lateinit var volumeSlider: Slider
     private lateinit var saveButton: MaterialButton
@@ -39,9 +42,16 @@ class AddEditAlarmDialog(
 
     private val durationOptions = listOf(5, 10, 15, 20, 30)
     private var selectedDateTime: LocalDateTime = LocalDateTime.now().plusMinutes(1)
-    private var selectedRingtoneUri: String = "default"
-    private var selectedRingtoneName: String = "צלצול ברירת מחדל"
     private val dayChips = mutableListOf<Chip>()
+
+    private val refreshHandler = Handler(Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            updateTimeUntilText()
+            updateDayChips()
+            refreshHandler.postDelayed(this, 30000) // עדכון כל 30 שניות
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,11 +78,8 @@ class AddEditAlarmDialog(
         timeButton = findViewById(R.id.timeButton)
         dayChipGroup = findViewById(R.id.dayChipGroup)
         timeUntilText = findViewById(R.id.timeUntilText)
-        ringtoneText = findViewById(R.id.ringtoneText)
-        changeRingtoneButton = findViewById(R.id.changeRingtoneButton)
         durationText = findViewById(R.id.durationText)
         durationSlider = findViewById(R.id.durationSlider)
-        vibrateSwitch = findViewById(R.id.vibrateSwitch)
         volumeText = findViewById(R.id.volumeText)
         volumeSlider = findViewById(R.id.volumeSlider)
         saveButton = findViewById(R.id.saveButton)
@@ -106,12 +113,6 @@ class AddEditAlarmDialog(
             }
 
             volumeSlider.value = alarm.volume.toFloat()
-            vibrateSwitch.isChecked = alarm.vibrate
-
-            if (alarm.ringtoneFile != "default") {
-                selectedRingtoneUri = alarm.ringtoneFile
-                selectedRingtoneName = alarm.ringtoneFile.substringAfterLast("/")
-            }
         } else {
             // מצב הוספה
             saveButton.text = "הוסף"
@@ -119,7 +120,6 @@ class AddEditAlarmDialog(
             selectedDateTime = now.plusMinutes(1)
             durationSlider.value = 1f // 10 שניות
             volumeSlider.value = 70f
-            vibrateSwitch.isChecked = true
         }
 
         updateTimeButton()
@@ -127,7 +127,9 @@ class AddEditAlarmDialog(
         updateTimeUntilText()
         updateDurationText()
         updateVolumeText()
-        updateRingtoneText()
+
+        // הפעל רענון אוטומטי
+        startAutoRefresh()
     }
 
     private fun setupListeners() {
@@ -143,10 +145,6 @@ class AddEditAlarmDialog(
             updateVolumeText()
         }
 
-        changeRingtoneButton.setOnClickListener {
-            openRingtonePicker()
-        }
-
         saveButton.setOnClickListener {
             saveAlarm()
         }
@@ -154,6 +152,15 @@ class AddEditAlarmDialog(
         cancelButton.setOnClickListener {
             dismiss()
         }
+    }
+
+    private fun startAutoRefresh() {
+        refreshHandler.post(refreshRunnable)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        refreshHandler.removeCallbacks(refreshRunnable)
     }
 
     private fun showTimePicker() {
@@ -196,42 +203,58 @@ class AddEditAlarmDialog(
         dayChips.clear()
 
         val now = LocalDateTime.now()
-        val daysBetween = java.time.Duration.between(now, selectedDateTime).toDays().toInt()
+        val selectedHour = selectedDateTime.hour
+        val selectedMinute = selectedDateTime.minute
 
+        // חשב אם השעה עברה
+        var targetDateTime = now.withHour(selectedHour).withMinute(selectedMinute).withSecond(0).withNano(0)
+        val isTimePassed = targetDateTime.isBefore(now) || targetDateTime.isEqual(now)
+
+        // אם השעה עברה, הזז ליום הבא
+        if (isTimePassed) {
+            targetDateTime = targetDateTime.plusDays(1)
+            selectedDateTime = targetDateTime
+        }
+
+        // צור 4 chips
         for (i in 0..3) {
             val chip = Chip(context)
-            val targetDate = if (i < daysBetween) {
-                now.plusDays(i.toLong())
-            } else {
-                selectedDateTime.plusDays((i - daysBetween).toLong())
-            }
-
-            val dayText = when {
-                i == daysBetween -> when(i) {
-                    0 -> "היום"
-                    1 -> "מחר"
-                    else -> getDayLetter(targetDate)
-                }
-                i < daysBetween -> getDayLetter(now.plusDays(i.toLong()))
-                else -> getDayLetter(targetDate)
-            }
-
-            chip.text = dayText
             chip.isCheckable = true
-            chip.isChecked = (i == daysBetween)
-            chip.setOnClickListener {
-                val daysToAdd = i.toLong()
-                selectedDateTime = now.plusDays(daysToAdd)
-                    .withHour(selectedDateTime.hour)
-                    .withMinute(selectedDateTime.minute)
+            chip.isClickable = true
+
+            val chipDateTime = if (isTimePassed) {
+                // אם השעה עברה, התחל ממחר
+                now.plusDays((i + 1).toLong())
+                    .withHour(selectedHour)
+                    .withMinute(selectedMinute)
                     .withSecond(0)
                     .withNano(0)
+            } else {
+                // אם השעה לא עברה, התחל מהיום
+                now.plusDays(i.toLong())
+                    .withHour(selectedHour)
+                    .withMinute(selectedMinute)
+                    .withSecond(0)
+                    .withNano(0)
+            }
 
-                // אם השעה כבר עברה, תוסיף יום
-                if (selectedDateTime.isBefore(now)) {
-                    selectedDateTime = selectedDateTime.plusDays(1)
-                }
+            // קבע טקסט
+            val chipText = when {
+                !isTimePassed && i == 0 -> "היום"
+                isTimePassed && i == 0 -> "מחר"
+                else -> getDayName(chipDateTime)
+            }
 
+            chip.text = chipText
+            chip.tag = chipDateTime
+
+            // בדוק אם זה היום הנבחר
+            val isSameDay = chipDateTime.toLocalDate() == selectedDateTime.toLocalDate()
+            chip.isChecked = isSameDay
+
+            chip.setOnClickListener { clickedChip ->
+                val selected = clickedChip.tag as LocalDateTime
+                selectedDateTime = selected
                 updateDayChips()
                 updateTimeUntilText()
             }
@@ -241,15 +264,15 @@ class AddEditAlarmDialog(
         }
     }
 
-    private fun getDayLetter(date: LocalDateTime): String {
+    private fun getDayName(date: LocalDateTime): String {
         return when(date.dayOfWeek.value) {
-            1 -> "ב'" // שני
-            2 -> "ג'" // שלישי
-            3 -> "ד'" // רביעי
-            4 -> "ה'" // חמישי
-            5 -> "ו'" // שישי
-            6 -> "ש'" // שבת
-            7 -> "א'" // ראשון
+            1 -> "ב'"
+            2 -> "ג'"
+            3 -> "ד'"
+            4 -> "ה'"
+            5 -> "ו'"
+            6 -> "ש'"
+            7 -> "א'"
             else -> ""
         }
     }
@@ -269,11 +292,16 @@ class AddEditAlarmDialog(
         val hours = duration.toHours() % 24
         val minutes = duration.toMinutes() % 60
 
+        val parts = mutableListOf<String>()
+        if (days > 0) parts.add("$days ימים")
+        if (hours > 0) parts.add("$hours שעות")
+        if (minutes > 0) parts.add("$minutes דקות")
+
         val text = when {
-            days > 0 -> "יצלצל בעוד $days ימים, $hours שעות ו-$minutes דקות"
-            hours > 0 -> "יצלצל בעוד $hours שעות ו-$minutes דקות"
-            else -> "יצלצל בעוד $minutes דקות"
+            parts.isEmpty() -> "מוגדר לפחות מדקה"
+            else -> "מוגדר ל-" + parts.joinToString(" ו-")
         }
+
         timeUntilText.text = text
     }
 
@@ -286,20 +314,6 @@ class AddEditAlarmDialog(
         volumeText.text = "עוצמת קול: ${volumeSlider.value.toInt()}%"
     }
 
-    private fun updateRingtoneText() {
-        ringtoneText.text = selectedRingtoneName
-    }
-
-    private fun openRingtonePicker() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "audio/*"
-        }
-
-        // צריך להשתמש ב-Activity כדי לקבל תוצאה
-        Toast.makeText(context, "בחירת צלצול תהיה זמינה בגרסה הבאה", Toast.LENGTH_SHORT).show()
-    }
-
     private fun saveAlarm() {
         val dateTimeString = selectedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
         val duration = durationOptions[durationSlider.value.toInt()]
@@ -310,18 +324,18 @@ class AddEditAlarmDialog(
                 dateTime = dateTimeString,
                 durationSeconds = duration,
                 volume = volume,
-                vibrate = vibrateSwitch.isChecked,
-                ringtoneFile = selectedRingtoneUri
+                vibrate = true, // תמיד עם רטט
+                ringtoneFile = "default" // תמיד צלצול ברירת מחדל
             )
         } else {
             Alarm(
-                id = 0,
+                id = 0, // יוחלף ב-MainActivity
                 dateTime = dateTimeString,
                 isActive = true,
                 durationSeconds = duration,
                 volume = volume,
-                vibrate = vibrateSwitch.isChecked,
-                ringtoneFile = selectedRingtoneUri
+                vibrate = true, // תמיד עם רטט
+                ringtoneFile = "default" // תמיד צלצול ברירת מחדל
             )
         }
 

@@ -1,6 +1,5 @@
 package com.gilad.shabbas_clock_kt.app.adapters
 
-
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,9 +19,11 @@ class AlarmAdapter(
 
     private var isEditMode = false
     private val selectedAlarms = mutableSetOf<Int>()
+    private var allAlarmsCount = 0
 
     interface OnAlarmClickListener {
         fun onAlarmClick(alarm: Alarm)
+        fun onAlarmLongClick(alarm: Alarm): Boolean
         fun onAlarmToggle(alarm: Alarm, isChecked: Boolean)
     }
 
@@ -34,6 +35,11 @@ class AlarmAdapter(
 
     override fun onBindViewHolder(holder: AlarmViewHolder, position: Int) {
         holder.bind(getItem(position))
+    }
+
+    override fun onCurrentListChanged(previousList: MutableList<Alarm>, currentList: MutableList<Alarm>) {
+        super.onCurrentListChanged(previousList, currentList)
+        allAlarmsCount = currentList.size
     }
 
     fun setEditMode(editMode: Boolean) {
@@ -53,27 +59,49 @@ class AlarmAdapter(
         notifyDataSetChanged()
     }
 
+    fun selectAll() {
+        currentList.forEach { alarm ->
+            selectedAlarms.add(alarm.id)
+        }
+        notifyDataSetChanged()
+    }
+
+    fun isAllSelected(): Boolean {
+        return selectedAlarms.size == allAlarmsCount && allAlarmsCount > 0
+    }
+
     inner class AlarmViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val cardView: CardView = itemView.findViewById(R.id.cardView)
         private val timeText: TextView = itemView.findViewById(R.id.timeText)
-        private val dateText: TextView = itemView.findViewById(R.id.dateText)
-        private val durationText: TextView = itemView.findViewById(R.id.durationText)
+        private val dayNameText: TextView = itemView.findViewById(R.id.dayNameText)
         private val timeUntilText: TextView = itemView.findViewById(R.id.timeUntilText)
         private val toggleSwitch: SwitchCompat = itemView.findViewById(R.id.toggleSwitch)
         private val checkBox: CheckBox = itemView.findViewById(R.id.checkBox)
 
         fun bind(alarm: Alarm) {
             timeText.text = alarm.getTimeString()
-            dateText.text = alarm.getDateString()
-            durationText.text = "משך צלצול: ${alarm.durationSeconds} שניות"
 
+            // עדכון תצוגה לפי מצב השעון
             if (alarm.isActive) {
+                val dayName = alarm.getDayName()
+                if (dayName.isNotEmpty()) {
+                    dayNameText.text = dayName
+                    dayNameText.visibility = View.VISIBLE
+                } else {
+                    dayNameText.visibility = View.GONE
+                }
+
                 timeUntilText.text = alarm.getTimeUntilAlarm()
                 timeUntilText.visibility = View.VISIBLE
-                cardView.alpha = 1.0f
+
+                // שקיפות רגילה לשעון פעיל
+                updateOpacity(1.0f)
             } else {
+                dayNameText.visibility = View.GONE
                 timeUntilText.visibility = View.GONE
-                cardView.alpha = 0.3f
+
+                // שקיפות מופחתת לשעון כבוי
+                updateOpacity(0.6f)
             }
 
             if (isEditMode) {
@@ -90,11 +118,14 @@ class AlarmAdapter(
                         checkBox.isChecked = true
                     }
                 }
+
+                cardView.setOnLongClickListener(null)
             } else {
                 toggleSwitch.visibility = View.VISIBLE
                 checkBox.visibility = View.GONE
                 toggleSwitch.isChecked = alarm.isActive
 
+                // מנע לולאה אינסופית
                 toggleSwitch.setOnCheckedChangeListener(null)
                 toggleSwitch.setOnCheckedChangeListener { _, isChecked ->
                     listener.onAlarmToggle(alarm, isChecked)
@@ -103,7 +134,19 @@ class AlarmAdapter(
                 cardView.setOnClickListener {
                     listener.onAlarmClick(alarm)
                 }
+
+                // לחיצה ארוכה לעריכה
+                cardView.setOnLongClickListener {
+                    listener.onAlarmLongClick(alarm)
+                }
             }
+        }
+
+        private fun updateOpacity(alpha: Float) {
+            cardView.alpha = alpha
+            timeText.alpha = 1.0f // הטקסט תמיד יהיה ברור
+            dayNameText.alpha = 1.0f
+            timeUntilText.alpha = 1.0f
         }
     }
 

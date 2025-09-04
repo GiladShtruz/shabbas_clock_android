@@ -4,11 +4,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layoutDirection="rtl">
+    android:layoutDirection="rtl"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -18,23 +20,50 @@
             app:title="מעורר לשבת"
             app:titleTextColor="@color/white">
 
-            <ImageView
-                android:id="@+id/infoButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="start"
-                android:padding="16dp"
-                android:src="@drawable/ic_info"
-                android:contentDescription="מידע" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="end|center_vertical"
+                android:layout_marginEnd="16dp">
 
-            <ImageView
-                android:id="@+id/editButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:padding="16dp"
-                android:src="@drawable/ic_edit"
-                android:contentDescription="עריכה" />
+                <ImageView
+                    android:id="@+id/infoButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_info"
+                    android:contentDescription="מידע"
+                    android:visibility="visible" />
+
+                <ImageView
+                    android:id="@+id/editButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_edit"
+                    android:contentDescription="עריכה"
+                    android:visibility="visible" />
+
+                <ImageView
+                    android:id="@+id/closeEditButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_close"
+                    android:contentDescription="סגור עריכה"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/selectAllButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_select_all"
+                    android:contentDescription="בחר הכל"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
         </androidx.appcompat.widget.Toolbar>
 
@@ -46,7 +75,7 @@
         android:layout_height="match_parent"
         android:padding="8dp"
         android:clipToPadding="false"
-        android:paddingBottom="100dp"
+        android:paddingBottom="160dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     <TextView
@@ -60,15 +89,16 @@
         android:textColor="@color/gray_medium"
         android:visibility="gone" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAddAlarm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="32dp"
-        android:src="@drawable/ic_add"
+        android:layout_marginBottom="24dp"
+        android:text="הוסף שעון"
+        app:icon="@drawable/ic_add"
         app:backgroundTint="@color/accent"
-        app:fabSize="normal"
-        app:tint="@color/white" />
+        app:iconTint="@color/white"
+        />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
