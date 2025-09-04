@@ -39,7 +39,11 @@ class AlarmRepository(private val context: Context) {
                 saveAlarms(updatedAlarms)
             }
 
-            updatedAlarms.sortedBy { it.getLocalDateTime() }
+            // מיון לפי שעה יומית (שעה ודקה בלבד, לא תאריך)
+            updatedAlarms.sortedBy { alarm ->
+                val time = alarm.getLocalDateTime()
+                time.hour * 60 + time.minute
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

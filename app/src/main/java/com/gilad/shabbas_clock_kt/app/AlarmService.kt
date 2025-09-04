@@ -15,12 +15,20 @@ import androidx.core.app.ServiceCompat
 import com.gilad.shabbas_clock_kt.R
 import kotlinx.coroutines.*
 
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
 class AlarmService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var job: Job? = null
     private var vibrateJob: Job? = null
+    private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
     companion object {
         private const val CHANNEL_ID = "alarm_channel"
@@ -151,6 +159,16 @@ class AlarmService : Service() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        if (vibrate) {
+            startContinuousVibration()
+        }
+
+        // תיקון: השתמש ב-serviceScope במקום GlobalScope
+        job = serviceScope.launch {
+            delay(durationSeconds * 1000L)
+            stopAlarm()
+        }
     }
 
     private fun playRingtone(ringtoneFile: String) {
@@ -198,9 +216,15 @@ class AlarmService : Service() {
     }
 
     private fun startContinuousVibration() {
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        // תיקון: השתמש ב-VibratorManager בגרסאות חדשות
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
-        // תבנית רטט: רטט למשך 1000ms, הפסקה 500ms, חוזר
         val pattern = longArrayOf(0, 1000, 500)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -222,16 +246,21 @@ class AlarmService : Service() {
         vibrator = null
 
         job?.cancel()
-        vibrateJob?.cancel()
 
-        stopForeground(true)
+        // תיקון: השתמש ב-stopForeground עם ServiceCompat
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+
         stopSelf()
     }
-
     override fun onDestroy() {
         stopAlarm()
+        serviceScope.cancel() // ביטול ה-scope
         super.onDestroy()
     }
-
     override fun onBind(intent: Intent?): IBinder? = null
 }

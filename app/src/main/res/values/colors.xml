@@ -4,7 +4,7 @@
     <color name="primary">#7C4DFF</color>
     <color name="primary_dark">#651FFF</color>
     <color name="primary_light">#B388FF</color>
-
+<!--    <color name="primary_light">#E8E0FF</color>-->
     <!-- צבעי הדגשה -->
     <color name="accent">#FF6E40</color>
     <color name="accent_dark">#FF3D00</color>

@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.gilad.shabbas_clock_kt.R
 import com.gilad.shabbas_clock_kt.app.adapters.AlarmAdapter
+import com.gilad.shabbas_clock_kt.app.dialogs.AddEditAlarmBottomSheet
 import com.gilad.shabbas_clock_kt.app.dialogs.AddEditAlarmDialog
 import com.gilad.shabbas_clock_kt.app.models.Alarm
 import com.gilad.shabbas_clock_kt.app.repository.AlarmRepository
@@ -58,7 +59,13 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
         override fun run() {
             updateAlarmsList()
             checkAndDisableActiveAlarms()
-            handler.postDelayed(this, 30000) // עדכון כל 30 שניות
+
+            // חשב מתי הדקה הבאה מתחילה
+            val now = System.currentTimeMillis()
+            val nextMinute = ((now / 60000) + 1) * 60000
+            val delay = nextMinute - now
+
+            handler.postDelayed(this, delay)
         }
     }
 
@@ -261,14 +268,19 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
 
     private fun updateAlarmsList() {
         val alarms = repository.getAllAlarms()
-        alarmAdapter.submitList(alarms)
 
-        if (alarms.isEmpty()) {
-            emptyStateText.visibility = View.VISIBLE
-            recyclerView.visibility = View.GONE
-        } else {
-            emptyStateText.visibility = View.GONE
-            recyclerView.visibility = View.VISIBLE
+        // עשה רענון מלא של הרשימה
+        runOnUiThread {
+            alarmAdapter.submitList(null) // נקה קודם
+            alarmAdapter.submitList(alarms) // ואז הוסף מחדש
+
+            if (alarms.isEmpty()) {
+                emptyStateText.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                emptyStateText.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+            }
         }
     }
 
@@ -318,13 +330,8 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             toggleEditMode()
         }
     }
-
     private fun showAddEditDialog(alarm: Alarm?) {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val lastRingtone = prefs.getString(PREF_LAST_RINGTONE, "default") ?: "default"
-        val lastRingtoneName = prefs.getString(PREF_LAST_RINGTONE_NAME, "צלצול ברירת מחדל") ?: "צלצול ברירת מחדל"
-
-        val dialog = AddEditAlarmDialog(this, alarm, lastRingtone, lastRingtoneName) { updatedAlarm ->
+        val bottomSheet = AddEditAlarmBottomSheet(alarm) { updatedAlarm ->
             if (alarm == null) {
                 val newAlarm = updatedAlarm.copy(id = repository.getNextAlarmId())
                 repository.addAlarm(newAlarm)
@@ -340,8 +347,31 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             }
             updateAlarmsList()
         }
-        dialog.show()
+        bottomSheet.show(supportFragmentManager, "AddEditAlarmBottomSheet")
     }
+//    private fun showAddEditDialog(alarm: Alarm?) {
+//        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+//        val lastRingtone = prefs.getString(PREF_LAST_RINGTONE, "default") ?: "default"
+//        val lastRingtoneName = prefs.getString(PREF_LAST_RINGTONE_NAME, "צלצול ברירת מחדל") ?: "צלצול ברירת מחדל"
+//
+//        val dialog = AddEditAlarmDialog(this, alarm, lastRingtone, lastRingtoneName) { updatedAlarm ->
+//            if (alarm == null) {
+//                val newAlarm = updatedAlarm.copy(id = repository.getNextAlarmId())
+//                repository.addAlarm(newAlarm)
+//                if (newAlarm.isActive) {
+//                    alarmManager.setAlarm(newAlarm)
+//                }
+//            } else {
+//                alarmManager.cancelAlarm(alarm)
+//                repository.updateAlarm(updatedAlarm)
+//                if (updatedAlarm.isActive) {
+//                    alarmManager.setAlarm(updatedAlarm)
+//                }
+//            }
+//            updateAlarmsList()
+//        }
+//        dialog.show()
+//    }
 
     private fun showInfoDialog() {
         AlertDialog.Builder(this)
@@ -367,28 +397,19 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
         try {
             pickAudioLauncher.launch("audio/*")
         } catch (e: Exception) {
-            try {
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "audio/*"
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                }
-                startActivityForResult(intent, REQUEST_AUDIO_PICK)
-            } catch (ex: Exception) {
-                Toast.makeText(this, "לא ניתן לפתוח בוחר קבצים", Toast.LENGTH_SHORT).show()
-            }
+            Toast.makeText(this, "לא ניתן לפתוח בוחר קבצים", Toast.LENGTH_SHORT).show()
         }
     }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_AUDIO_PICK && resultCode == RESULT_OK) {
-            data?.data?.let { uri ->
-                val fileName = getFileName(uri)
-                audioPickerCallback?.invoke(uri.toString(), fileName)
-                audioPickerCallback = null
-            }
-        }
-    }
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        if (requestCode == REQUEST_AUDIO_PICK && resultCode == RESULT_OK) {
+//            data?.data?.let { uri ->
+//                val fileName = getFileName(uri)
+//                audioPickerCallback?.invoke(uri.toString(), fileName)
+//                audioPickerCallback = null
+//            }
+//        }
+//    }
 
     override fun onAlarmClick(alarm: Alarm) {
         if (!isEditMode) {
@@ -405,6 +426,11 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     }
 
     override fun onAlarmToggle(alarm: Alarm, isChecked: Boolean) {
+        // אם המצב לא השתנה, לא לעשות כלום
+        if (alarm.isActive == isChecked) {
+            return
+        }
+
         val now = LocalDateTime.now()
         var alarmTime = now
             .withHour(alarm.getLocalDateTime().hour)
@@ -412,6 +438,7 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             .withSecond(0)
             .withNano(0)
 
+        // אם השעה כבר עברה היום, קבע למחר
         if (alarmTime.isBefore(now) || alarmTime.isEqual(now)) {
             alarmTime = alarmTime.plusDays(1)
         }
@@ -422,21 +449,36 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             isActive = isChecked
         )
 
+        // עדכן במאגר
         repository.updateAlarm(updatedAlarm)
+
+        // תמיד בטל את השעון הקודם
         alarmManager.cancelAlarm(alarm)
 
         if (isChecked) {
             alarmManager.setAlarm(updatedAlarm)
         }
 
-        handler.post {
-            updateAlarmsList()
+        // עדכון מיידי של הרשימה ללא דיליי
+        runOnUiThread {
+            val alarms = repository.getAllAlarms()
+            alarmAdapter.submitList(null) // ריקון זמני
+            alarmAdapter.submitList(alarms) // רענון מלא
         }
     }
-
     override fun onResume() {
         super.onResume()
-        handler.post(updateRunnable)
+
+        // הפעל רענון מיידי
+        updateAlarmsList()
+        checkAndDisableActiveAlarms()
+
+        // חשב מתי הדקה הבאה מתחילה
+        val now = System.currentTimeMillis()
+        val nextMinute = ((now / 60000) + 1) * 60000
+        val delay = nextMinute - now
+
+        handler.postDelayed(updateRunnable, delay)
     }
 
     override fun onPause() {
