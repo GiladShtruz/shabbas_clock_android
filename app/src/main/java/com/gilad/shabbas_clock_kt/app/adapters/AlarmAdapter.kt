@@ -136,6 +136,7 @@ class AlarmAdapter(
                         cardView.setCardBackgroundColor(
                             ContextCompat.getColor(itemView.context, R.color.primary_light)
                         )
+
                         cardView.cardElevation = 8.dp.toFloat()
                     }
                 }

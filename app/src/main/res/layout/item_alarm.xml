@@ -11,7 +11,10 @@
     android:foreground="?android:attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:layoutDirection="rtl">
+    android:layoutDirection="rtl"
+
+
+    >
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -59,14 +62,23 @@
             android:layout_gravity="center_vertical"
             android:scaleX="1.2"
             android:scaleY="1.2"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="8dp"
+            app:trackTint="@color/primary_lighter"
+            app:thumbTint="@color/primary"
+
+            />
 
         <CheckBox
             android:id="@+id/checkBox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:buttonTint="@color/primary"
+            android:alpha="1.0"
+            android:layerType="hardware"
+
+            />
 
     </LinearLayout>
 

@@ -23,6 +23,8 @@ import java.time.format.DateTimeFormatter
 
 class AddEditAlarmBottomSheet(
     private val alarm: Alarm?,
+    private val defaultDuration: Int,
+    private val defaultVolume: Int,
     private val onSave: (Alarm) -> Unit
 ) : BottomSheetDialogFragment() {
 
@@ -81,7 +83,7 @@ class AddEditAlarmBottomSheet(
     }
 
     private fun setupInitialValues() {
-        // הגדרת סליידר משך צלצול עם תוויות
+        // הגדרת סליידרים
         durationSlider.valueFrom = 0f
         durationSlider.valueTo = 4f
         durationSlider.stepSize = 1f
@@ -89,18 +91,17 @@ class AddEditAlarmBottomSheet(
             "${durationOptions[value.toInt()]} שניות"
         }
 
-        // הגדרת סליידר עוצמת קול
         volumeSlider.valueFrom = 0f
         volumeSlider.valueTo = 100f
         volumeSlider.stepSize = 10f
 
         if (alarm != null) {
-            // מצב עריכה
+            // מצב עריכה - השתמש בערכים של השעון
             saveButton.text = "עדכן"
+            saveButton.isEnabled = true  // תמיד פעיל במצב עריכה
             val alarmTime = alarm.getLocalDateTime()
             selectedDateTime = alarmTime
 
-            // משך צלצול
             val durationIndex = durationOptions.indexOf(alarm.durationSeconds)
             if (durationIndex != -1) {
                 durationSlider.value = durationIndex.toFloat()
@@ -108,12 +109,20 @@ class AddEditAlarmBottomSheet(
 
             volumeSlider.value = alarm.volume.toFloat()
         } else {
-            // מצב הוספה
+            // מצב הוספה - השתמש בברירות המחדל שנשמרו
             saveButton.text = "הוסף"
             val now = LocalDateTime.now()
             selectedDateTime = now.plusMinutes(1)
-            durationSlider.value = 1f // 10 שניות
-            volumeSlider.value = 70f
+
+            // השתמש בערכי ברירת מחדל מההעדפות
+            val durationIndex = durationOptions.indexOf(defaultDuration)
+            durationSlider.value = if (durationIndex != -1) {
+                durationIndex.toFloat()
+            } else {
+                1f // 10 שניות אם אין ערך שמור
+            }
+
+            volumeSlider.value = defaultVolume.toFloat()
         }
 
         updateTimeButton()
@@ -122,10 +131,8 @@ class AddEditAlarmBottomSheet(
         updateDurationText()
         updateVolumeText()
 
-        // הפעל רענון אוטומטי
         startAutoRefresh()
     }
-
     private fun setupListeners() {
         timeButton.setOnClickListener {
             showTimePicker()
@@ -272,30 +279,61 @@ class AddEditAlarmBottomSheet(
 
     private fun updateTimeUntilText() {
         val now = LocalDateTime.now()
-        val duration = java.time.Duration.between(now, selectedDateTime)
 
-        if (duration.isNegative) {
-            timeUntilText.text = "הזמן שנבחר כבר עבר"
-            saveButton.isEnabled = false
-            return
+        // בדוק אם זה מצב עריכה
+        if (alarm != null) {
+            // במצב עריכה, תמיד אפשר את הכפתור
+            saveButton.isEnabled = true
+
+            // עדכן את הטקסט בהתאם לזמן שנבחר
+            val duration = java.time.Duration.between(now, selectedDateTime)
+
+            if (duration.isNegative) {
+                timeUntilText.text = "הזמן שנבחר כבר עבר - יעודכן ליום הבא"
+            } else {
+                val days = duration.toDays()
+                val hours = duration.toHours() % 24
+                val minutes = duration.toMinutes() % 60
+
+                val parts = mutableListOf<String>()
+                if (days > 0) parts.add("$days ימים")
+                if (hours > 0) parts.add("$hours שעות")
+                if (minutes > 0) parts.add("$minutes דקות")
+
+                val text = when {
+                    parts.isEmpty() -> "מוגדר לעוד פחות מדקה"
+                    else -> "מוגדר לעוד " + parts.joinToString(" ו-")
+                }
+
+                timeUntilText.text = text
+            }
+        } else {
+            // במצב הוספה, בדוק את הזמן
+            val duration = java.time.Duration.between(now, selectedDateTime)
+
+            if (duration.isNegative) {
+                timeUntilText.text = "הזמן שנבחר כבר עבר"
+                saveButton.isEnabled = false
+                return
+            }
+
+            saveButton.isEnabled = true
+            val days = duration.toDays()
+            val hours = duration.toHours() % 24
+            val minutes = duration.toMinutes() % 60
+
+            val parts = mutableListOf<String>()
+            if (days > 0) parts.add("$days ימים")
+            if (hours > 0) parts.add("$hours שעות")
+            if (minutes > 0) parts.add("$minutes דקות")
+
+            val text = when {
+                parts.isEmpty() -> "מוגדר לעוד פחות מדקה"
+                else -> "מוגדר לעוד " + parts.joinToString(" ו-")
+            }
+
+            timeUntilText.text = text
         }
-
-        saveButton.isEnabled = true
-        val days = duration.toDays()
-        val hours = duration.toHours() % 24
-        val minutes = duration.toMinutes() % 60
-
-        val parts = mutableListOf<String>()
-        if (days > 0) parts.add("$days ימים")
-        if (hours > 0) parts.add("$hours שעות")
-        if (minutes > 0) parts.add("$minutes דקות")
-
-        val text = when {
-            parts.isEmpty() -> "מוגדר לעוד פחות מדקה"
-            else -> "מוגדר לעוד " + parts.joinToString(" ו-")
-        }
-
-        timeUntilText.text = text
     }
     private fun updateDurationText() {
         val duration = durationOptions[durationSlider.value.toInt()]

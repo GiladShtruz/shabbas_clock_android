@@ -1,23 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- צבעים ראשיים - סגול רך -->
-    <color name="primary">#7C4DFF</color>
-    <color name="primary_dark">#651FFF</color>
-    <color name="primary_light">#B388FF</color>
-<!--    <color name="primary_light">#E8E0FF</color>-->
-    <!-- צבעי הדגשה -->
-    <color name="accent">#FF6E40</color>
-    <color name="accent_dark">#FF3D00</color>
+    <!-- צבעים ראשיים – מודרניים וייחודיים -->
+    <color name="primary">#467E92</color>         <!-- טורקיז עמוק, אלגנטי -->
+    <color name="primary_dark">#345E6E</color>    <!-- כהה יותר, מקצועי -->
+    <color name="primary_light">#7EBFCF</color>   <!-- בהיר ורענן -->
+    <color name="primary_lighter">#A6D7E1</color> <!-- אוורירי ועדין -->
+
+    <!-- צבעי הדגשה – ייחודיים ועדינים -->
+    <color name="accent">#C17AA6</color>          <!-- ורוד-סגול יוקרתי -->
+    <color name="accent_light">#F2DFEC</color>    <!-- ורוד עדין לרקע והדגשות -->
+
+    <!-- צבעי טקסט -->
+    <color name="text_primary">#212121</color>    <!-- קריא ונקי -->
+    <color name="text_secondary">#505050</color>  <!-- פחות כבד, נעים לקריאה -->
+
+    <!-- צבעי רקע – רכים ומרגיעים -->
+    <color name="bg_primary">#F7F9FA</color>      <!-- כמעט לבן, מאוד עדין -->
+    <color name="bg_secondary">#EAF2F5</color>    <!-- תכלת עדין, מרגיע -->
+    <color name="bg_tertiary">#D3E3E8</color>     <!-- מבודל ועדין -->
 
     <!-- צבעים בסיסיים -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="gray_light">#F5F5F5</color>
-    <color name="gray_medium">#9E9E9E</color>
-    <color name="gray_dark">#616161</color>
+    <color name="gray_medium">#A0A0A0</color>
+    <color name="gray_dark">#5A5A5A</color>
 
-    <!-- צבעים פונקציונליים -->
-    <color name="red">#F44336</color>
-    <color name="green">#4CAF50</color>
+    <!-- צבעים פונקציונליים – מודרניים ועדינים -->
+    <color name="red">#E57373</color>             <!-- אדום מודרני, לא צורם -->
+    <color name="green">#81C784</color>           <!-- ירוק עדין ויפה -->
     <color name="disabled_gray">#BDBDBD</color>
 </resources>

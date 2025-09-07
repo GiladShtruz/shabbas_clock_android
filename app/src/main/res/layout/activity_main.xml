@@ -75,8 +75,8 @@
         android:layout_height="match_parent"
         android:padding="8dp"
         android:clipToPadding="false"
-        android:paddingBottom="160dp"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+        android:paddingBottom="200dp"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     <TextView
         android:id="@+id/emptyStateText"
@@ -97,7 +97,7 @@
         android:layout_marginBottom="24dp"
         android:text="הוסף שעון"
         app:icon="@drawable/ic_add"
-        app:backgroundTint="@color/accent"
+        app:backgroundTint="@color/primary"
         app:iconTint="@color/white"
         />
 
