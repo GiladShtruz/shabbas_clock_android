@@ -4,6 +4,7 @@
 package com.gilad.shabbas_clock_kt.app.dialogs
 
 import android.app.TimePickerDialog
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -27,7 +28,11 @@ class AddEditAlarmBottomSheet(
     private val defaultVolume: Int,
     private val onSave: (Alarm) -> Unit
 ) : BottomSheetDialogFragment() {
-
+    companion object {
+        private const val PREFS_NAME = "AlarmPrefs"
+        private const val PREF_DEFAULT_DURATION = "default_duration"
+        private const val PREF_DEFAULT_VOLUME = "default_volume"
+    }
     private lateinit var timeButton: Button
     private lateinit var dayChipGroup: ChipGroup
     private lateinit var timeUntilText: TextView
@@ -63,11 +68,11 @@ class AddEditAlarmBottomSheet(
         setupListeners()
 
         // אם זה שעון חדש, פתח מיד את בוחר השעה
-        if (alarm == null) {
-            Handler(Looper.getMainLooper()).postDelayed({
-                showTimePicker()
-            }, 300)
-        }
+//        if (alarm == null) {
+//            Handler(Looper.getMainLooper()).postDelayed({
+//                showTimePicker()
+//            }, 300)
+//        }
     }
 
     private fun initializeViews(view: View) {
@@ -133,6 +138,17 @@ class AddEditAlarmBottomSheet(
 
         startAutoRefresh()
     }
+
+    private fun saveCurrentPreferences() {
+        val duration = durationOptions[durationSlider.value.toInt()]
+        val volume = volumeSlider.value.toInt()
+
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt(PREF_DEFAULT_DURATION, duration)
+            .putInt(PREF_DEFAULT_VOLUME, volume)
+            .apply()
+    }
     private fun setupListeners() {
         timeButton.setOnClickListener {
             showTimePicker()
@@ -140,10 +156,12 @@ class AddEditAlarmBottomSheet(
 
         durationSlider.addOnChangeListener { _, value, _ ->
             updateDurationText()
+            saveCurrentPreferences() // שמור בכל שינוי
         }
 
         volumeSlider.addOnChangeListener { _, value, _ ->
             updateVolumeText()
+            saveCurrentPreferences() // שמור בכל שינוי
         }
 
         saveButton.setOnClickListener {
@@ -151,10 +169,10 @@ class AddEditAlarmBottomSheet(
         }
 
         cancelButton.setOnClickListener {
+            saveCurrentPreferences() // שמור גם בביטול
             dismiss()
         }
     }
-
     private fun startAutoRefresh() {
         refreshHandler.post(refreshRunnable)
     }
@@ -335,6 +353,8 @@ class AddEditAlarmBottomSheet(
             timeUntilText.text = text
         }
     }
+
+
     private fun updateDurationText() {
         val duration = durationOptions[durationSlider.value.toInt()]
         durationText.text = "משך צלצול: $duration שניות"
@@ -349,27 +369,36 @@ class AddEditAlarmBottomSheet(
         val duration = durationOptions[durationSlider.value.toInt()]
         val volume = volumeSlider.value.toInt()
 
+        // שמירת ההעדפות תמיד - גם בעריכה וגם בהוספה
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt(PREF_DEFAULT_DURATION, duration)
+            .putInt(PREF_DEFAULT_VOLUME, volume)
+            .apply()
+
         val newAlarm = if (alarm != null) {
+            // בעריכה - תמיד הפעל את השעון
             alarm.copy(
                 dateTime = dateTimeString,
                 durationSeconds = duration,
                 volume = volume,
-                vibrate = true, // תמיד עם רטט
-                ringtoneFile = "default" // תמיד צלצול ברירת מחדל
+                vibrate = true,
+                ringtoneFile = "default",
+                isActive = true  // תמיד הפעל בעריכה
             )
         } else {
+            // הוספה חדשה
             Alarm(
-                id = 0, // יוחלף ב-MainActivity
+                id = 0,
                 dateTime = dateTimeString,
                 isActive = true,
                 durationSeconds = duration,
                 volume = volume,
-                vibrate = true, // תמיד עם רטט
-                ringtoneFile = "default" // תמיד צלצול ברירת מחדל
+                vibrate = true,
+                ringtoneFile = "default"
             )
         }
 
         onSave(newAlarm)
         dismiss()
-    }
-}
+    }}
