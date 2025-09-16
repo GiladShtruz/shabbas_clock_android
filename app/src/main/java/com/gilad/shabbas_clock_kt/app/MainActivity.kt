@@ -422,10 +422,9 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     }
 
     override fun onAlarmToggle(alarm: Alarm, isChecked: Boolean) {
-        if (alarm.isActive == isChecked) {
-            return
-        }
+        if (alarm.isActive == isChecked) return
 
+        // חישוב הזמן הבא
         val now = LocalDateTime.now()
         var alarmTime = now
             .withHour(alarm.getLocalDateTime().hour)
@@ -443,17 +442,18 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
             isActive = isChecked
         )
 
+        // עדכון Repository וה-AlarmManager
         repository.updateAlarm(updatedAlarm)
         alarmManager.cancelAlarm(alarm)
+        if (isChecked) alarmManager.setAlarm(updatedAlarm)
 
-        if (isChecked) {
-            alarmManager.setAlarm(updatedAlarm)
-        }
-
+        // עדכון הרשימה בצורה נקייה
         val alarms = repository.getAllAlarms()
-        alarmAdapter.submitList(alarms) {
-            alarmAdapter.notifyDataSetChanged()
-        }
+        Handler(Looper.getMainLooper()).postDelayed( {
+            alarmAdapter.submitList(alarms) {
+                alarmAdapter.notifyDataSetChanged()
+            }
+        },200)
     }
 
     override fun onResume() {

@@ -84,18 +84,16 @@ class AlarmAdapter(
         fun bind(alarm: Alarm) {
             timeText.text = alarm.getTimeString()
 
-            // קבע opacity מיידית בלי אנימציה או בדיקות
-            cardView.alpha = if (alarm.isActive) 1.0f else 0.6f
+            // קבע opacity התחלתי בהתאם למצב השעון
+            cardView.alpha = if (alarm.isActive) 1f else 0.6f
 
-            // עדכון תצוגה לפי מצב השעון
+            // עדכון תצוגת ימים ושעות
             if (alarm.isActive) {
                 val dayName = alarm.getDayName()
-                if (dayName.isNotEmpty()) {
+                dayNameText.visibility = if (dayName.isNotEmpty()) {
                     dayNameText.text = dayName
-                    dayNameText.visibility = View.VISIBLE
-                } else {
-                    dayNameText.visibility = View.GONE
-                }
+                    View.VISIBLE
+                } else View.GONE
 
                 timeUntilText.text = alarm.getTimeUntilAlarm()
                 timeUntilText.visibility = View.VISIBLE
@@ -110,51 +108,87 @@ class AlarmAdapter(
                 checkBox.isChecked = selectedAlarms.contains(alarm.id)
 
                 // הדגשת כרטיס מסומן
-                if (selectedAlarms.contains(alarm.id)) {
-                    cardView.setCardBackgroundColor(
-                        ContextCompat.getColor(itemView.context, R.color.primary_light)
+                val isSelected = selectedAlarms.contains(alarm.id)
+                cardView.setCardBackgroundColor(
+                    ContextCompat.getColor(itemView.context,
+                        if (isSelected) R.color.primary_light else R.color.white
                     )
-                    cardView.cardElevation = 8.dp.toFloat()
-                } else {
-                    cardView.setCardBackgroundColor(
-                        ContextCompat.getColor(itemView.context, R.color.white)
-                    )
-                    cardView.cardElevation = 4.dp.toFloat()
-                }
+                )
+                cardView.cardElevation = if (isSelected) 8.dp.toFloat() else 4.dp.toFloat()
 
                 cardView.setOnClickListener {
-                    if (selectedAlarms.contains(alarm.id)) {
+                    if (isSelected) {
                         selectedAlarms.remove(alarm.id)
                         checkBox.isChecked = false
-                        cardView.setCardBackgroundColor(
-                            ContextCompat.getColor(itemView.context, R.color.white)
-                        )
+                        cardView.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.white))
                         cardView.cardElevation = 4.dp.toFloat()
                     } else {
                         selectedAlarms.add(alarm.id)
                         checkBox.isChecked = true
-                        cardView.setCardBackgroundColor(
-                            ContextCompat.getColor(itemView.context, R.color.primary_light)
-                        )
-
+                        cardView.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.primary_light))
                         cardView.cardElevation = 8.dp.toFloat()
                     }
                 }
 
                 cardView.setOnLongClickListener(null)
+
             } else {
-                cardView.setCardBackgroundColor(
-                    ContextCompat.getColor(itemView.context, R.color.white)
-                )
+                cardView.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.white))
                 cardView.cardElevation = 4.dp.toFloat()
 
                 toggleSwitch.visibility = View.VISIBLE
                 checkBox.visibility = View.GONE
 
+                // בטיחות - לא להפעיל listener קודם
                 toggleSwitch.setOnCheckedChangeListener(null)
                 toggleSwitch.isChecked = alarm.isActive
+
                 toggleSwitch.setOnCheckedChangeListener { _, isChecked ->
                     if (isChecked != alarm.isActive) {
+                        // אנימציה של ה-CardView מיידית עם שינוי ה-Switch
+                        val targetAlpha = if (isChecked) 1f else 0.6f
+                        cardView.animate()
+                            .alpha(targetAlpha)
+                            .setDuration(200)
+                            .start()
+//                        if (alarm.isActive) {
+//                            // Fade in של הטקסטים
+//                            dayNameText.alpha = 0f
+//                            dayNameText.visibility = View.VISIBLE
+//                            dayNameText.animate()
+//                                .alpha(1f)
+//                                .setDuration(200)
+//                                .setStartDelay(100) // התחל אחרי 100ms
+//                                .start()
+//
+//                            timeUntilText.alpha = 0f
+//                            timeUntilText.visibility = View.VISIBLE
+//                            timeUntilText.animate()
+//                                .alpha(1f)
+//                                .setDuration(200)
+//                                .setStartDelay(150) // התחל אחרי 150ms
+//                                .start()
+//                        }
+//                        else {
+//                            // Fade out של הטקסטים
+//                            dayNameText.animate()
+//                                .alpha(0f)
+//                                .setDuration(200)
+//                                .withEndAction {
+//                                    dayNameText.visibility = View.GONE
+//                                }
+//                                .start()
+//
+//                            timeUntilText.animate()
+//                                .alpha(0f)
+//                                .setDuration(200)
+//                                .withEndAction {
+//                                    timeUntilText.visibility = View.GONE
+//                                }
+//                                .start()
+//                        }
+
+                        // עדכון ה-Alarms ברקע
                         listener.onAlarmToggle(alarm, isChecked)
                     }
                 }
@@ -167,7 +201,11 @@ class AlarmAdapter(
                     listener.onAlarmLongClick(alarm)
                 }
             }
-        }    }
+        }
+
+
+    }
+
 
     class AlarmDiffCallback : DiffUtil.ItemCallback<Alarm>() {
         override fun areItemsTheSame(oldItem: Alarm, newItem: Alarm): Boolean {
