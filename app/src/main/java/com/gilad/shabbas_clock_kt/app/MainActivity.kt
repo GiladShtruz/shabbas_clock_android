@@ -25,6 +25,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
@@ -36,6 +37,9 @@ import com.gilad.shabbas_clock_kt.app.repository.AlarmRepository
 import com.gilad.shabbas_clock_kt.app.services.AlarmManagerService
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+import androidx.activity.ComponentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
 
@@ -98,7 +102,10 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+
         setContentView(R.layout.activity_main)
 
         initializeViews()
@@ -115,6 +122,9 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
                 isEnabled = false
                 onBackPressedDispatcher.onBackPressed()
             }
+        }
+        splashScreen.setKeepOnScreenCondition {
+            false // תחליף ל־true עד שתסיים לטעון נתונים
         }
     }
 
@@ -317,10 +327,10 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     private fun deleteSelectedAlarms() {
         val selectedIds = alarmAdapter.getSelectedAlarmIds()
         if (selectedIds.isNotEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle("מחיקת שעונים")
-                .setMessage("האם אתה בטוח שברצונך למחוק ${selectedIds.size} שעונים?")
-                .setPositiveButton("מחק") { _, _ ->
+//            AlertDialog.Builder(this)
+//                .setTitle("מחיקת שעונים")
+//                .setMessage("האם אתה בטוח שברצונך למחוק ${selectedIds.size} שעונים?")
+//                .setPositiveButton("מחק") { _, _ ->
                     selectedIds.forEach { id ->
                         val alarm = repository.getAllAlarms().find { it.id == id }
                         alarm?.let {
@@ -331,9 +341,9 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
                     updateAlarmsList()
                     toggleEditMode()
                 }
-                .setNegativeButton("ביטול", null)
-                .show()
-        } else {
+//                .setNegativeButton("ביטול", null)
+//                .show()
+         else {
             Toast.makeText(this, "לא נבחרו שעונים למחיקה", Toast.LENGTH_SHORT).show()
             toggleEditMode()
         }
@@ -378,14 +388,22 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
         }
         bottomSheet.show(supportFragmentManager, "AddEditAlarmBottomSheet")
     }
-
     private fun showInfoDialog() {
         AlertDialog.Builder(this)
             .setTitle("אודות")
-            .setMessage("מעורר לשבת\nגרסה 1.0\n\nאפליקציה מיוחדת לשומרי שבת")
+            .setMessage("האפליקציה פותחה ע\"י גילעד שטרוזמן. \n תודה לגיא שלמה על עיצוב הלוגו! \n לפרטים נוספים דברו איתי: \n giladsh22@gmail.com \n")
             .setPositiveButton("סגור", null)
+            .setNeutralButton("Privacy Policy") { _, _ ->
+                // פותח את הקישור בדפדפן
+                val url = "https://docs.google.com/document/d/e/2PACX-1vS-NS6n5_tfM3Geph3sBVSQuayZkw1AS7F4yE3lSrPNRcKsDiMcitRrI0R8yluHJ2bjs6LxCNq7EEmG/pub"
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.data = url.toUri()
+                startActivity(intent)
+            }
             .show()
     }
+
+
 
     private fun getFileName(uri: Uri): String {
         var name = "צלצול מותאם אישית"

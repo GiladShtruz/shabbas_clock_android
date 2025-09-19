@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.MyApp" parent="Theme.SplashScreen">
+        <!-- צבע רקע -->
+        <item name="windowSplashScreenBackground">@color/primary_light</item>
+
+        <!-- לוגו או אייקון (עדיף vector או adaptive icon) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher</item>
+
+        <!-- משך מינימום של המסך (מילישניות) -->
+        <item name="windowSplashScreenAnimationDuration">0</item>
+
+        <!-- אחרי ה־Splash עוברים לנושא האפליקציה הרגיל -->
+        <item name="postSplashScreenTheme">@style/Theme.ShabbatAlarm</item>
+    </style>
+
+
     <style name="Theme.ShabbatAlarm" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
