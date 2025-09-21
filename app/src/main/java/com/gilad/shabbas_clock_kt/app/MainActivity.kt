@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -58,20 +59,31 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     private var allSelected = false
     private val handler = Handler(Looper.getMainLooper())
 
+    // החלף את updateRunnable (שורות 43-54) בקוד הזה:
     private val updateRunnable = object : Runnable {
         override fun run() {
+            // עדכון הרשימה ובדיקת שעונים פעילים
             updateAlarmsList()
             checkAndDisableActiveAlarms()
 
-            // חשב מתי הדקה הבאה מתחילה
-            val now = System.currentTimeMillis()
-            val nextMinute = ((now / 60000) + 1) * 60000
-            val delay = nextMinute - now
+            // כדי לוודא שהאדפטר מתעדכן מיד
+            alarmAdapter.notifyDataSetChanged()
 
-            handler.postDelayed(this, delay)
+            // תזמון הרענון הבא בדיוק במעבר הדקה
+            scheduleNextMinuteUpdate()
         }
     }
 
+    // הוסף פונקציה חדשה אחרי updateRunnable:
+    private fun scheduleNextMinuteUpdate() {
+        // חשב בדיוק כמה זמן נשאר עד הדקה הבאה
+        val now = System.currentTimeMillis()
+        val nextMinute = ((now / 60000) + 1) * 60000
+        val delay = nextMinute - now
+
+        // תזמן את העדכון הבא
+        handler.postDelayed(updateRunnable, delay)
+    }
     private var audioPickerCallback: ((String?, String?) -> Unit)? = null
 
     private val pickAudioLauncher = registerForActivityResult(
@@ -356,6 +368,7 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
 
         val bottomSheet = AddEditAlarmBottomSheet(alarm, defaultDuration, defaultVolume) { updatedAlarm ->
             if (alarm == null) {
+                Log.d("tott","null")
                 // שעון חדש
                 prefs.edit()
                     .putInt(PREF_DEFAULT_DURATION, updatedAlarm.durationSeconds)
@@ -368,22 +381,25 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
                     alarmManager.setAlarm(newAlarm)
                 }
             } else {
-                // עדכון שעון קיים - תמיד שמור על המצב המקורי של isActive
+                Log.d("tott","else")
+
                 alarmManager.cancelAlarm(alarm)
 
-                // העתק את כל השדות החדשים אבל שמור על isActive המקורי
+
                 val finalAlarm = updatedAlarm.copy(
                     id = alarm.id,  // וודא שה-ID נשמר
-                    isActive = alarm.isActive  // תמיד שמור על המצב המקורי
+                    isActive = true
                 )
 
                 repository.updateAlarm(finalAlarm)
 
                 // אם השעון היה פעיל, עדכן אותו במערכת
-                if (finalAlarm.isActive) {
+//                if (finalAlarm.isActive) {
                     alarmManager.setAlarm(finalAlarm)
-                }
+//                }
+
             }
+//            alarmAdapter.notifyDataSetChanged()
             updateAlarmsListCorrectly()
         }
         bottomSheet.show(supportFragmentManager, "AddEditAlarmBottomSheet")
@@ -477,16 +493,19 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     override fun onResume() {
         super.onResume()
 
+        // ביטול כל הרענונים הקודמים
+        handler.removeCallbacks(updateRunnable)
+
+        // עדכון מיידי
         updateAlarmsList()
         checkAndDisableActiveAlarms()
 
-        val now = System.currentTimeMillis()
-        val nextMinute = ((now / 60000) + 1) * 60000
-        val delay = nextMinute - now
-
-        handler.postDelayed(updateRunnable, delay)
+        // תזמון הרענון הבא בדיוק במעבר הדקה
+        scheduleNextMinuteUpdate()
+        alarmAdapter.notifyDataSetChanged()
     }
 
+    // וודא ש-onPause נשאר כמו שהוא:
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(updateRunnable)

@@ -65,13 +65,14 @@ data class Alarm(
         val duration = java.time.Duration.between(now, alarmTime)
         val days = duration.toDays()
         val hours = duration.toHours() % 24
-        val minutes = duration.toMinutes() % 60
+        val minutes = duration.toMinutes() % 60 + 1
+
 
         val parts = mutableListOf<String>()
 
         if (days > 0) parts.add("$days ימים")
         if (hours > 0) parts.add("$hours שעות")
-        if (minutes > 0) parts.add("$minutes דקות")
+        if (minutes > 1) parts.add("$minutes דקות")
 
         return when {
             parts.isEmpty() -> "יצלצל בעוד פחות מדקה"

@@ -52,10 +52,15 @@ class AddEditAlarmBottomSheet(
         override fun run() {
             updateTimeUntilText()
             updateDayChips()
-            refreshHandler.postDelayed(this, 30000)
+
+            // תזמון הרענון הבא בדיוק במעבר הדקה
+            val now = System.currentTimeMillis()
+            val nextMinute = ((now / 60000) + 1) * 60000
+            val delay = nextMinute - now
+
+            refreshHandler.postDelayed(this, delay)
         }
     }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.bottom_sheet_add_edit_alarm, container, false)
     }
@@ -104,7 +109,22 @@ class AddEditAlarmBottomSheet(
             // מצב עריכה - השתמש בערכים של השעון
             saveButton.text = "עדכן"
             saveButton.isEnabled = true  // תמיד פעיל במצב עריכה
-            val alarmTime = alarm.getLocalDateTime()
+
+
+            // if alarm time is in the past, set it to current time
+            val now = LocalDateTime.now()
+            var alarmTime = now
+                .withHour(alarm.getLocalDateTime().hour)
+                .withMinute(alarm.getLocalDateTime().minute)
+                .withSecond(0)
+                .withNano(0)
+
+            if (alarmTime.isBefore(now) || alarmTime.isEqual(now)) {
+                alarmTime = alarmTime.plusDays(1)
+            }
+
+
+
             selectedDateTime = alarmTime
 
             val durationIndex = durationOptions.indexOf(alarm.durationSeconds)
@@ -174,7 +194,12 @@ class AddEditAlarmBottomSheet(
         }
     }
     private fun startAutoRefresh() {
-        refreshHandler.post(refreshRunnable)
+        // תזמון הרענון הראשון בדיוק במעבר הדקה הבאה
+        val now = System.currentTimeMillis()
+        val nextMinute = ((now / 60000) + 1) * 60000
+        val delay = nextMinute - now
+
+        refreshHandler.postDelayed(refreshRunnable, delay)
     }
 
     override fun onStop() {
@@ -364,6 +389,9 @@ class AddEditAlarmBottomSheet(
         volumeText.text = "עוצמת קול: ${volumeSlider.value.toInt()}%"
     }
 
+    // בקובץ AddEditAlarmBottomSheet.kt
+// מחליף את הפונקציה saveAlarm() החל משורה 273
+
     private fun saveAlarm() {
         val dateTimeString = selectedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
         val duration = durationOptions[durationSlider.value.toInt()]
@@ -377,7 +405,7 @@ class AddEditAlarmBottomSheet(
             .apply()
 
         val newAlarm = if (alarm != null) {
-            // בעריכה - תמיד הפעל את השעון
+            // בעריכה - תמיד הפעל את השעון (ללא קשר למצבו הקודם)
             alarm.copy(
                 dateTime = dateTimeString,
                 durationSeconds = duration,
