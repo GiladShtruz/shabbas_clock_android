@@ -356,7 +356,7 @@ class AddEditAlarmBottomSheet(
 
             if (duration.isNegative) {
                 timeUntilText.text = "הזמן שנבחר כבר עבר"
-                saveButton.isEnabled = false
+//                saveButton.isEnabled = false
                 return
             }
 
