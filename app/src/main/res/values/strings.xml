@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">מעורר לשבת2</string>
+    <string name="app_name">מעורר לשבת</string>
     <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
 </resources>

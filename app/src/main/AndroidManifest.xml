@@ -39,6 +39,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".app.AboutActivity"
+            android:exported="false"
+            android:label="אודות"
+            android:theme="@style/Theme.ShabbatAlarm"
+            android:parentActivityName=".app.MainActivity" />
+
         <receiver
             android:name=".app.AlarmReceiver"
             android:enabled="true"

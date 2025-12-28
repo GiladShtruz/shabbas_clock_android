@@ -408,18 +408,8 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
         bottomSheet.show(supportFragmentManager, "AddEditAlarmBottomSheet")
     }
     private fun showInfoDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("אודות")
-            .setMessage("האפליקציה פותחה ע\"י גילעד שטרוזמן. \n תודה לגיא שלמה על עיצוב הלוגו! \n לפרטים נוספים דברו איתי: \n giladsh22@gmail.com \n")
-            .setPositiveButton("סגור", null)
-            .setNeutralButton("Privacy Policy") { _, _ ->
-                // פותח את הקישור בדפדפן
-                val url = "https://docs.google.com/document/d/e/2PACX-1vS-NS6n5_tfM3Geph3sBVSQuayZkw1AS7F4yE3lSrPNRcKsDiMcitRrI0R8yluHJ2bjs6LxCNq7EEmG/pub"
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.data = url.toUri()
-                startActivity(intent)
-            }
-            .show()
+        val intent = Intent(this, AboutActivity::class.java)
+        startActivity(intent)
     }
 
 
