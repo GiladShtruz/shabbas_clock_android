@@ -26,7 +26,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import android.graphics.Rect
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -39,8 +38,6 @@ import com.gilad.shabbas_clock_kt.app.repository.AlarmRepository
 import com.gilad.shabbas_clock_kt.app.services.AlarmManagerService
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
-import androidx.activity.ComponentActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
@@ -108,8 +105,6 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
     companion object {
         private const val REQUEST_PERMISSIONS = 100
         private const val PREFS_NAME = "AlarmPrefs"
-        private const val PREF_LAST_RINGTONE = "last_ringtone"
-        private const val PREF_LAST_RINGTONE_NAME = "last_ringtone_name"
         private const val PREF_DEFAULT_DURATION = "default_duration"
         private const val PREF_DEFAULT_VOLUME = "default_volume"
     }
