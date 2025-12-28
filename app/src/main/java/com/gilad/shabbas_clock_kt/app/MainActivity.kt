@@ -322,8 +322,11 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
         alarms.forEach { alarm ->
             if (alarm.isActive) {
                 val alarmTime = alarm.getLocalDateTime()
+                // בדיקה מלאה של תאריך ושעה - לא רק שעה ודקה
                 if (alarmTime.isBefore(now) ||
-                    (alarmTime.hour == now.hour && alarmTime.minute == now.minute)) {
+                    (alarmTime.toLocalDate() == now.toLocalDate() &&
+                     alarmTime.hour == now.hour &&
+                     alarmTime.minute == now.minute)) {
                     val updatedAlarm = alarm.copy(isActive = false)
                     repository.updateAlarm(updatedAlarm)
                     updated = true

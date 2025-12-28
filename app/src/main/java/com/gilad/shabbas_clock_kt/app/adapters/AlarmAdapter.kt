@@ -105,6 +105,9 @@ class AlarmAdapter(
             if (isEditMode) {
                 toggleSwitch.visibility = View.GONE
                 checkBox.visibility = View.VISIBLE
+
+                // בטל listener קודם לפני הגדרת הערך
+                checkBox.setOnCheckedChangeListener(null)
                 checkBox.isChecked = selectedAlarms.contains(alarm.id)
 
                 // הדגשת כרטיס מסומן
@@ -116,26 +119,31 @@ class AlarmAdapter(
                 )
                 cardView.cardElevation = if (isSelected) 8.dp.toFloat() else 4.dp.toFloat()
 
-                cardView.setOnClickListener {
-                    // במצב עריכה, לחיצה על כרטיס צריכה לשנות את מצב הבחירה (toggle)
-                    val currentlySelected = selectedAlarms.contains(alarm.id)
-                    if (currentlySelected) {
-                        // אם הפריט כבר נבחר, הסר אותו מהרשימה
-                        selectedAlarms.remove(alarm.id)
-                        checkBox.isChecked = false
-                        cardView.setCardBackgroundColor(
-                            ContextCompat.getColor(itemView.context, R.color.white)
-                        )
-                        cardView.cardElevation = 4.dp.toFloat()
-                    } else {
-                        // אם הפריט לא נבחר, הוסף אותו לרשימה
+                // פונקציה לעדכון מצב הבחירה
+                fun updateSelection(selected: Boolean) {
+                    if (selected) {
                         selectedAlarms.add(alarm.id)
-                        checkBox.isChecked = true
                         cardView.setCardBackgroundColor(
                             ContextCompat.getColor(itemView.context, R.color.primary_light)
                         )
                         cardView.cardElevation = 8.dp.toFloat()
+                    } else {
+                        selectedAlarms.remove(alarm.id)
+                        cardView.setCardBackgroundColor(
+                            ContextCompat.getColor(itemView.context, R.color.white)
+                        )
+                        cardView.cardElevation = 4.dp.toFloat()
                     }
+                }
+
+                // הוסף listener ל-CheckBox
+                checkBox.setOnCheckedChangeListener { _, isChecked ->
+                    updateSelection(isChecked)
+                }
+
+                cardView.setOnClickListener {
+                    // במצב עריכה, לחיצה על כרטיס משנה את מצב ה-CheckBox
+                    checkBox.isChecked = !checkBox.isChecked
                 }
 
                 cardView.setOnLongClickListener(null)
