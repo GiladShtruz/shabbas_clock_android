@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import android.graphics.Rect
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
@@ -152,6 +153,17 @@ class MainActivity : AppCompatActivity(), AlarmAdapter.OnAlarmClickListener {
         recyclerView.layoutManager = LinearLayoutManager(this)
         alarmAdapter = AlarmAdapter(this)
         recyclerView.adapter = alarmAdapter
+
+        // הוספת מרווח בתחתית הרשימה כדי שהפריט האחרון לא יוסתר על ידי ה-FAB
+        recyclerView.addItemDecoration(object : RecyclerView.ItemDecoration() {
+            override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
+                val position = parent.getChildAdapterPosition(view)
+                val itemCount = state.itemCount
+                if (position == itemCount - 1) {
+                    outRect.bottom = (120 * resources.displayMetrics.density).toInt()
+                }
+            }
+        })
     }
 
     private fun initializeServices() {

@@ -21,6 +21,7 @@ import com.gilad.shabbas_clock_kt.R
 import com.gilad.shabbas_clock_kt.app.models.Alarm
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class AddEditAlarmDialog(
     private val activity: AppCompatActivity,
@@ -195,7 +196,7 @@ class AddEditAlarmDialog(
     }
 
     private fun updateTimeButton() {
-        timeButton.text = String.format("%02d:%02d", selectedDateTime.hour, selectedDateTime.minute)
+        timeButton.text = String.format(Locale.ROOT, "%02d:%02d", selectedDateTime.hour, selectedDateTime.minute)
     }
 
     private fun updateDayChips() {

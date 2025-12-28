@@ -43,38 +43,37 @@ android {
 dependencies {
 
     // splash screen:
+    implementation("androidx.core:core-splashscreen:1.2.0")
 
-    implementation("androidx.core:core-splashscreen:1.0.1")
-
-// Core Android
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    // Core Android
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Material Design
-    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.google.android.material:material:1.13.0")
 
     // Layouts
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.cardview:cardview:1.0.0")
 
-    // Lifecycle (למרות שלא משתמשים ישירות, טוב שיהיה)
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
 
     // JSON handling
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // Coroutines (עבור AlarmService)
+    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Work Manager (אופציונלי - אם תרצה לשפר את הניהול של השעונים)
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    // Work Manager
+    implementation("androidx.work:work-runtime-ktx:2.11.0")
     implementation(libs.ui.graphics)
     implementation(libs.material3)
 
-    // Testing (אפשר להשאיר את אלה)
+    // Testing
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 
 }

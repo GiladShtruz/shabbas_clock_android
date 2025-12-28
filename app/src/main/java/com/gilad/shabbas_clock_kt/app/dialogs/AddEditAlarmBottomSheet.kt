@@ -18,6 +18,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.slider.Slider
 import com.gilad.shabbas_clock_kt.R
+import java.util.Locale
 import com.gilad.shabbas_clock_kt.app.models.Alarm
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -239,7 +240,7 @@ class AddEditAlarmBottomSheet(
     }
 
     private fun updateTimeButton() {
-        timeButton.text = String.format("%02d:%02d", selectedDateTime.hour, selectedDateTime.minute)
+        timeButton.text = String.format(Locale.ROOT, "%02d:%02d", selectedDateTime.hour, selectedDateTime.minute)
     }
 
     private fun updateDayChips() {

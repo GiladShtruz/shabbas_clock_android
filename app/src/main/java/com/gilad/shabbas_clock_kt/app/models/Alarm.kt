@@ -19,7 +19,7 @@ data class Alarm(
 
     fun getTimeString(): String {
         val time = getLocalDateTime()
-        return String.format("%02d:%02d", time.hour, time.minute)
+        return String.format(Locale.ROOT, "%02d:%02d", time.hour, time.minute)
     }
 
     fun getDayName(): String {
